@@ -74,6 +74,9 @@ export interface Scene {
     primary: string
     accent: string
   }
+  display?: {
+    cardGradient: string
+  }
   isCustom?: boolean
 }
 
@@ -138,7 +141,8 @@ const defaultScenes: Scene[] = [
       forest: { volume: 50, isPlaying: true },
       wind: { volume: 20, isPlaying: true },
     },
-    theme: { primary: '#a78bfa', accent: '#c4b5fd' }
+    theme: { primary: '#a78bfa', accent: '#c4b5fd' },
+    display: { cardGradient: 'from-pink-500/20 to-purple-600/20' }
   },
   {
     id: 'rainy-cafe',
@@ -151,7 +155,8 @@ const defaultScenes: Scene[] = [
       cafe: { volume: 40, isPlaying: true },
       keyboard: { volume: 20, isPlaying: true },
     },
-    theme: { primary: '#f59e0b', accent: '#fbbf24' }
+    theme: { primary: '#f59e0b', accent: '#fbbf24' },
+    display: { cardGradient: 'from-amber-500/20 to-orange-600/20' }
   },
   {
     id: 'forest-cabin',
@@ -164,7 +169,8 @@ const defaultScenes: Scene[] = [
       fireplace: { volume: 50, isPlaying: true },
       wind: { volume: 30, isPlaying: false },
     },
-    theme: { primary: '#22c55e', accent: '#4ade80' }
+    theme: { primary: '#22c55e', accent: '#4ade80' },
+    display: { cardGradient: 'from-green-500/20 to-emerald-600/20' }
   },
   {
     id: 'night-city',
@@ -177,7 +183,8 @@ const defaultScenes: Scene[] = [
       lofi: { volume: 40, isPlaying: true },
       keyboard: { volume: 30, isPlaying: false },
     },
-    theme: { primary: '#3b82f6', accent: '#60a5fa' }
+    theme: { primary: '#3b82f6', accent: '#60a5fa' },
+    display: { cardGradient: 'from-blue-500/20 to-indigo-600/20' }
   },
   {
     id: 'anime-study',
@@ -190,7 +197,8 @@ const defaultScenes: Scene[] = [
       keyboard: { volume: 25, isPlaying: true },
       cafe: { volume: 15, isPlaying: false },
     },
-    theme: { primary: '#ec4899', accent: '#f472b6' }
+    theme: { primary: '#ec4899', accent: '#f472b6' },
+    display: { cardGradient: 'from-pink-400/20 to-rose-500/20' }
   },
   {
     id: 'minimal',
@@ -199,9 +207,13 @@ const defaultScenes: Scene[] = [
     background: '',
     backgroundType: 'gradient',
     sounds: {},
-    theme: { primary: '#a78bfa', accent: '#c4b5fd' }
+    theme: { primary: '#a78bfa', accent: '#c4b5fd' },
+    display: { cardGradient: 'from-purple-500/20 to-violet-600/20' }
   },
 ]
+
+export const getSceneCardGradient = (scene: Scene) =>
+  scene.display?.cardGradient ?? 'from-slate-600/20 to-slate-800/20'
 
 // ============================================
 // TIMER STORE
