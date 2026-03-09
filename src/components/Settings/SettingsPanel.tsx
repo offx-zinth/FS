@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Clock, Image, Timer, Bell, Keyboard, Upload, Trash2 } from 'lucide-react'
 import { useSettingsStore, useTimerStore, useStatsStore } from '@/stores'
 import { Switch } from '@/components/ui/switch'
@@ -37,7 +37,9 @@ export function SettingsPanel() {
   const { sessions, streak, totalFocusTime } = useStatsStore()
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const appBlobUrlRef = useRef<string | null>(null)
   const [activeTab, setActiveTab] = useState<'clock' | 'background' | 'timer' | 'notifications' | 'shortcuts'>('clock')
+  const isBlobBackground = Boolean(backgroundUrl?.startsWith('blob:'))
   
   const focusMinutes = focusDuration / 60
   const shortBreakMinutes = shortBreakDuration / 60
@@ -46,11 +48,37 @@ export function SettingsPanel() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (appBlobUrlRef.current) {
+        URL.revokeObjectURL(appBlobUrlRef.current)
+      }
+
       const url = URL.createObjectURL(file)
+      appBlobUrlRef.current = url
       const isVideo = file.type.startsWith('video/')
+
+      // Object URLs are local to this browser session.
+      // If uploads should survive reloads, persist the File/Blob (e.g. IndexedDB)
+      // and recreate the object URL when loading settings.
       setBackground(url, isVideo ? 'video' : 'image')
     }
   }
+
+  const handleResetBackground = () => {
+    if (appBlobUrlRef.current) {
+      URL.revokeObjectURL(appBlobUrlRef.current)
+      appBlobUrlRef.current = null
+    }
+
+    setBackground(null, 'gradient')
+  }
+
+  useEffect(() => {
+    return () => {
+      if (appBlobUrlRef.current) {
+        URL.revokeObjectURL(appBlobUrlRef.current)
+      }
+    }
+  }, [])
 
   const handleTimerChange = (type: 'focus' | 'shortBreak' | 'longBreak', minutes: number) => {
     const seconds = minutes * 60
@@ -162,10 +190,10 @@ export function SettingsPanel() {
 
             {backgroundUrl && (
               <button
-                onClick={() => setBackground(null, 'gradient')}
+                onClick={handleResetBackground}
                 className="w-full text-xs text-white/30 hover:text-white/50 py-2 transition-colors"
               >
-                Reset to default
+                Reset to default{isBlobBackground ? ' (uploaded)' : ''}
               </button>
             )}
           </>
