@@ -17,6 +17,8 @@ export interface TimerState {
   shortBreakDuration: number
   longBreakDuration: number
   sessionsBeforeLongBreak: number
+  lastTransitionAt: number | null
+  lastCompletedPhase: TimerPhase | null
   start: () => void
   pause: () => void
   reset: () => void
@@ -222,6 +224,8 @@ export const useTimerStore = create<TimerState>()(
       shortBreakDuration: DEFAULT_SHORT_BREAK,
       longBreakDuration: DEFAULT_LONG_BREAK,
       sessionsBeforeLongBreak: 4,
+      lastTransitionAt: null,
+      lastCompletedPhase: null,
 
       start: () => set({ isRunning: true }),
       pause: () => set({ isRunning: false }),
@@ -275,7 +279,9 @@ export const useTimerStore = create<TimerState>()(
           phase: newPhase, 
           timeLeft: newTimeLeft, 
           isRunning: false,
-          sessionCount: newSessionCount 
+          sessionCount: newSessionCount,
+          lastTransitionAt: Date.now(),
+          lastCompletedPhase: phase
         })
       },
 
