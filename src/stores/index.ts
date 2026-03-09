@@ -330,11 +330,12 @@ export const useTaskStore = create<TaskState>()(
 
       addTask: (text, priority = 'medium', estimatedSessions = 1) => {
         const { tasks } = get()
+        const nextOrder = tasks.length > 0 ? Math.max(...tasks.map((task) => task.order)) + 1 : 0
         const newTask: Task = {
           id: crypto.randomUUID(),
           text,
           completed: false,
-          order: tasks.length,
+          order: nextOrder,
           priority,
           estimatedSessions,
           completedSessions: 0,
@@ -367,7 +368,19 @@ export const useTaskStore = create<TaskState>()(
         })
       },
 
-      reorderTasks: (tasks: Task[]) => set({ tasks }),
+      reorderTasks: (tasks: Task[]) => {
+        const pendingTasks = tasks
+          .filter((task) => !task.completed)
+          .sort((a, b) => a.order - b.order)
+          .map((task, index) => ({ ...task, order: index }))
+
+        const completedTasks = tasks
+          .filter((task) => task.completed)
+          .sort((a, b) => a.order - b.order)
+          .map((task, index) => ({ ...task, order: pendingTasks.length + index }))
+
+        set({ tasks: [...pendingTasks, ...completedTasks] })
+      },
     }),
     {
       name: 'flocus-tasks',
