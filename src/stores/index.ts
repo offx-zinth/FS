@@ -82,6 +82,7 @@ export interface Scene {
 
 export interface SceneState {
   scenes: Scene[]
+  customScenes: Scene[]
   activeSceneId: string | null
   setActiveScene: (id: string) => void
   addCustomScene: (scene: Omit<Scene, 'id' | 'isCustom'>) => void
@@ -129,7 +130,7 @@ export interface SettingsState {
 // DEFAULT SCENES
 // ============================================
 
-const defaultScenes: Scene[] = [
+const DEFAULT_SCENES: ReadonlyArray<Scene> = Object.freeze([
   {
     id: 'lofi-garden',
     name: 'LoFi Garden',
@@ -210,6 +211,13 @@ const defaultScenes: Scene[] = [
     theme: { primary: '#a78bfa', accent: '#c4b5fd' },
     display: { cardGradient: 'from-purple-500/20 to-violet-600/20' }
   },
+])
+
+const DEFAULT_SCENE_IDS = new Set(DEFAULT_SCENES.map(scene => scene.id))
+
+const buildScenes = (customScenes: Scene[] = []): Scene[] => [
+  ...DEFAULT_SCENES,
+  ...customScenes
 ]
 
 export const getSceneCardGradient = (scene: Scene) =>
@@ -473,7 +481,8 @@ export const useSoundStore = create<SoundState>()(
 export const useSceneStore = create<SceneState>()(
   persist(
     (set, get) => ({
-      scenes: defaultScenes,
+      scenes: buildScenes(),
+      customScenes: [],
       activeSceneId: null,
 
       setActiveScene: (id) => {
@@ -492,19 +501,29 @@ export const useSceneStore = create<SceneState>()(
       },
 
       addCustomScene: (sceneData) => {
-        const { scenes } = get()
+        const { customScenes } = get()
         const newScene: Scene = {
           ...sceneData,
           id: `custom-${Date.now()}`,
           isCustom: true
         }
-        set({ scenes: [...scenes, newScene] })
+        const nextCustomScenes = [...customScenes, newScene]
+        set({
+          customScenes: nextCustomScenes,
+          scenes: buildScenes(nextCustomScenes)
+        })
       },
 
       removeCustomScene: (id) => {
-        const { scenes, activeSceneId } = get()
+        if (DEFAULT_SCENE_IDS.has(id)) {
+          return
+        }
+
+        const { customScenes, activeSceneId } = get()
+        const nextCustomScenes = customScenes.filter(scene => scene.id !== id)
         set({ 
-          scenes: scenes.filter(s => s.id !== id),
+          customScenes: nextCustomScenes,
+          scenes: buildScenes(nextCustomScenes),
           activeSceneId: activeSceneId === id ? null : activeSceneId
         })
       }
@@ -513,8 +532,27 @@ export const useSceneStore = create<SceneState>()(
       name: 'flocus-scenes',
       partialize: (state) => ({
         activeSceneId: state.activeSceneId,
-        scenes: state.scenes.filter(s => s.isCustom)
-      })
+        customScenes: state.customScenes
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState as Partial<SceneState> | undefined) ?? {}
+        const customScenes = (persisted.customScenes ?? []).filter(
+          scene => scene.isCustom && !DEFAULT_SCENE_IDS.has(scene.id)
+        )
+        const scenes = buildScenes(customScenes)
+        const persistedActiveSceneId = persisted.activeSceneId ?? currentState.activeSceneId
+        const activeSceneId = persistedActiveSceneId && scenes.some(scene => scene.id === persistedActiveSceneId)
+          ? persistedActiveSceneId
+          : null
+
+        return {
+          ...currentState,
+          ...persisted,
+          customScenes,
+          scenes,
+          activeSceneId
+        }
+      }
     }
   )
 )
