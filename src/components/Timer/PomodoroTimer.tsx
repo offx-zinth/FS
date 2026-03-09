@@ -25,6 +25,8 @@ export function PomodoroTimer({ minimal = false }: PomodoroTimerProps) {
     focusDuration,
     shortBreakDuration,
     longBreakDuration,
+    lastTransitionAt,
+    lastCompletedPhase,
     start, 
     pause, 
     reset, 
@@ -32,7 +34,7 @@ export function PomodoroTimer({ minimal = false }: PomodoroTimerProps) {
   } = useTimerStore()
   
   const { enableNotifications } = useSettingsStore()
-  const notificationSentRef = useRef(false)
+  const lastHandledTransitionRef = useRef<number | null>(null)
 
   // Calculate progress
   const getTotalTime = useCallback(() => {
@@ -57,46 +59,44 @@ export function PomodoroTimer({ minimal = false }: PomodoroTimerProps) {
     return () => clearInterval(interval)
   }, [isRunning, tick])
 
-  // Notification on completion
+  // Notification + chime on phase transition
   useEffect(() => {
-    if (timeLeft <= 0 && !notificationSentRef.current && enableNotifications) {
-      notificationSentRef.current = true
-      
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const label = phase === 'focus' ? 'Focus session' : 'Break'
-        new Notification(`${label} complete!`, {
-          body: phase === 'focus' 
-            ? 'Time for a break!' 
-            : 'Ready to focus again?',
-          icon: '/logo.svg'
-        })
-      }
-      
-      // Play a subtle sound
-      try {
-        const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-        
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-        
-        oscillator.frequency.value = 523.25
-        oscillator.type = 'sine'
-        gainNode.gain.value = 0.08
-        
-        oscillator.start()
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-        oscillator.stop(audioContext.currentTime + 0.5)
-      } catch {
-        // Audio not supported
-      }
+    if (!lastTransitionAt || lastHandledTransitionRef.current === lastTransitionAt || !enableNotifications) {
+      return
     }
-    
-    if (timeLeft > 0) {
-      notificationSentRef.current = false
+
+    lastHandledTransitionRef.current = lastTransitionAt
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const label = lastCompletedPhase === 'focus' ? 'Focus session' : 'Break'
+      new Notification(`${label} complete!`, {
+        body: lastCompletedPhase === 'focus'
+          ? 'Time for a break!'
+          : 'Ready to focus again?',
+        icon: '/logo.svg'
+      })
     }
-  }, [timeLeft, phase, enableNotifications])
+
+    // Play a subtle sound
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      oscillator.frequency.value = 523.25
+      oscillator.type = 'sine'
+      gainNode.gain.value = 0.08
+
+      oscillator.start()
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+      oscillator.stop(audioContext.currentTime + 0.5)
+    } catch {
+      // Audio not supported
+    }
+  }, [lastTransitionAt, lastCompletedPhase, enableNotifications])
 
   // Request notification permission
   useEffect(() => {
