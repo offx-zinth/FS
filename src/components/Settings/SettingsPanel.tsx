@@ -134,6 +134,31 @@ export function SettingsPanel() {
       <div className="space-y-4">
         {activeTab === 'clock' && (
           <>
+            {/* Focus Mode */}
+            <div className="space-y-2">
+              <label className="text-xs text-white/40 uppercase tracking-wider">Mode</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: 'deepWork', label: 'Deep Work' },
+                  { id: 'study', label: 'Study' },
+                  { id: 'chill', label: 'Chill' },
+                ] as const).map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setFocusMode(mode.id)}
+                    className={cn(
+                      'px-2 py-2 rounded-lg text-xs transition-all duration-300',
+                      focusMode === mode.id
+                        ? 'bg-white/10 text-white/80'
+                        : 'bg-white/5 text-white/40 hover:text-white/60'
+                    )}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Clock Format */}
             <div className="space-y-2">
               <label className="text-xs text-white/40 uppercase tracking-wider">Format</label>

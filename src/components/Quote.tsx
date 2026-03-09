@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const quotes = [
   { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -24,7 +24,17 @@ function getQuoteForCurrentTime() {
 }
 
 export function Quote() {
-  const quote = useMemo(() => getQuoteForCurrentTime(), [])
+  const [bucket, setBucket] = useState(() => Math.floor(Date.now() / (5 * 60 * 1000)))
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setBucket(Math.floor(Date.now() / (5 * 60 * 1000)))
+    }, 30_000)
+
+    return () => window.clearInterval(interval)
+  }, [])
+
+  const quote = useMemo(() => quotes[bucket % quotes.length], [bucket])
 
   return (
     <div className="text-center max-w-md">

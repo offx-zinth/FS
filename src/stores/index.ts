@@ -24,6 +24,7 @@ export interface TimerState {
   reset: () => void
   tick: () => void
   nextPhase: () => void
+  setPhase: (phase: TimerPhase) => void
   setDurations: (focus: number, shortBreak: number, longBreak: number) => void
 }
 
@@ -302,6 +303,22 @@ export const useTimerStore = create<TimerState>()(
           sessionCount: newSessionCount,
           lastTransitionAt: Date.now(),
           lastCompletedPhase: phase
+        })
+      },
+
+      setPhase: (phase) => {
+        const { focusDuration, shortBreakDuration, longBreakDuration } = get()
+        const nextTimeLeft = phase === 'focus'
+          ? focusDuration
+          : phase === 'shortBreak'
+            ? shortBreakDuration
+            : longBreakDuration
+
+        set({
+          phase,
+          timeLeft: nextTimeLeft,
+          isRunning: false,
+          lastTransitionAt: Date.now()
         })
       },
 
@@ -697,6 +714,7 @@ export const useSettingsStore = create<SettingsState>()(
         enableKeyboardShortcuts: state.enableKeyboardShortcuts,
         focusMode: state.focusMode,
         defaultSceneId: state.defaultSceneId,
+        backgroundUrl: state.backgroundUrl?.startsWith('blob:') ? null : state.backgroundUrl,
         backgroundType: state.backgroundType,
       })
     }

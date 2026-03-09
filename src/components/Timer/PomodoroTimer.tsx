@@ -31,6 +31,7 @@ export function PomodoroTimer({ minimal = false }: PomodoroTimerProps) {
     pause, 
     reset, 
     tick,
+    setPhase,
   } = useTimerStore()
   
   const { enableNotifications } = useSettingsStore()
@@ -172,6 +173,29 @@ export function PomodoroTimer({ minimal = false }: PomodoroTimerProps) {
       {/* Phase indicator */}
       <div className="text-sm text-white/40 uppercase tracking-[4px]">
         {phaseLabels[phase]} · Session {sessionCount + 1}
+      </div>
+
+
+      {/* Phase quick switch */}
+      <div className="flex items-center gap-2 p-1 rounded-xl bg-white/5">
+        {(
+          [
+            { id: 'focus' as const, label: 'Focus' },
+            { id: 'shortBreak' as const, label: 'Short Break' },
+            { id: 'longBreak' as const, label: 'Long Break' },
+          ]
+        ).map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setPhase(item.id)}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs transition-colors',
+              phase === item.id ? 'bg-white/15 text-white/90' : 'text-white/50 hover:text-white/70'
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
       {/* Timer circle */}

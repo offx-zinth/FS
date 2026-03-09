@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useSyncExternalStore, useCallback } from 'react'
-import { Music, ListTodo, Settings, X, Layout, BarChart3, Focus, BookOpen, Coffee } from 'lucide-react'
+import { useState, useSyncExternalStore, useCallback, useEffect } from 'react'
+import { Music, ListTodo, Settings, X, Layout, BarChart3, Focus, BookOpen, Coffee, Menu } from 'lucide-react'
 import { BackgroundManager } from '@/components/Background/BackgroundManager'
 import { HandwrittenClock } from '@/components/Clock/HandwrittenClock'
 import { PomodoroTimer } from '@/components/Timer/PomodoroTimer'
@@ -11,7 +11,7 @@ import { SettingsPanel } from '@/components/Settings/SettingsPanel'
 import { SceneSelector } from '@/components/Scenes/SceneSelector'
 import { StatsPanel } from '@/components/Stats/StatsPanel'
 import { Quote } from '@/components/Quote'
-import { useSoundStore, useTaskStore, useSettingsStore, FocusMode } from '@/stores'
+import { useSoundStore, useTaskStore, useSettingsStore, FocusMode, useTimerStore } from '@/stores'
 import { useKeyboardShortcuts, shortcutHints } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/utils'
 
@@ -93,6 +93,7 @@ function FocusModeSelector() {
 function MainContent() {
   const [activePanel, setActivePanel] = useState<PanelType>(null)
   const [showTimer, setShowTimer] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   
   // Get store values with selectors
@@ -138,16 +139,22 @@ function MainContent() {
 
   // Determine which panels to show based on focus mode
   const visiblePanels: PanelType[] = focusMode === 'deepWork' 
-    ? ['settings']
+    ? ['tasks', 'stats', 'settings']
     : focusMode === 'chill'
     ? ['scenes', 'sounds', 'settings']
     : ['scenes', 'sounds', 'tasks', 'stats', 'settings']
+
+  useEffect(() => {
+    if (activePanel && !visiblePanels.includes(activePanel)) {
+      setActivePanel(null)
+    }
+  }, [focusMode, activePanel])
 
   return (
     <>
       {/* Top Section */}
       <div className="flex justify-between items-start">
-        {focusMode === 'study' && <FocusModeSelector />}
+        <FocusModeSelector />
         <Greeting />
       </div>
 
@@ -165,17 +172,17 @@ function MainContent() {
               >
                 <HandwrittenClock />
                 <p className="text-center text-white/30 text-xs mt-4 uppercase tracking-[3px] group-hover:text-white/50 transition-colors">
-                  Click for timer
+                  {focusMode === 'chill' ? 'Click for chill timer' : 'Click for timer'}
                 </p>
               </button>
 
-              {focusMode === 'chill' && (
+              {(focusMode === 'study' || focusMode === 'chill') && (
                 <div className="mt-4">
                   <Quote />
                 </div>
               )}
 
-              {focusMode === 'study' && activeTask && (
+              {(focusMode === 'study' || focusMode === 'deepWork') && activeTask && (
                 <div className="glass px-4 py-2 mt-2">
                   <p className="text-white/60 text-sm">→ {activeTask.text}</p>
                 </div>
@@ -196,7 +203,7 @@ function MainContent() {
       </div>
 
       {/* Bottom Section */}
-      <div className="flex justify-end items-end mt-auto gap-3">
+      <div className="flex justify-between items-end mt-auto gap-3">
         {focusMode === 'study' && (
           <div className="hidden lg:flex items-center gap-2 text-white/20 text-xs">
             {shortcutHints.slice(0, 3).map((hint, i) => (
@@ -208,36 +215,50 @@ function MainContent() {
             ))}
           </div>
         )}
-        
-        {/* Glass Panel */}
-        <div className="glass p-2 flex flex-col gap-1 min-w-[160px]">
-          {visiblePanels.map((panel) => {
-            if (!panel) return null
-            const config = panelConfig[panel]
-            const Icon = config.icon
-            const isActive = activePanel === panel
-            
-            return (
-              <button
-                key={panel}
-                onClick={() => setActivePanel(isActive ? null : panel)}
-                className={cn(
-                  "flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-300 text-sm",
-                  isActive 
-                    ? "bg-white/10 text-white/90" 
-                    : "text-white/50 hover:text-white/70 hover:bg-white/5"
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
-                  <span>{config.label}</span>
-                </span>
-                {panel === 'sounds' && hasActiveSound && (
-                  <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-                )}
-              </button>
-            )
-          })}
+
+        <div className="relative">
+          <button
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="glass px-4 py-2 rounded-xl text-white/70 hover:text-white/90 text-sm flex items-center gap-2"
+          >
+            <Menu className="w-4 h-4" />
+            Menu
+          </button>
+
+          {isMenuOpen && (
+            <div className="absolute right-0 bottom-12 glass p-2 flex flex-col gap-1 min-w-[180px]">
+              {visiblePanels.map((panel) => {
+                if (!panel) return null
+                const config = panelConfig[panel]
+                const Icon = config.icon
+                const isActive = activePanel === panel
+
+                return (
+                  <button
+                    key={panel}
+                    onClick={() => {
+                      setActivePanel(isActive ? null : panel)
+                      setIsMenuOpen(false)
+                    }}
+                    className={cn(
+                      'flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-300 text-sm',
+                      isActive
+                        ? 'bg-white/10 text-white/90'
+                        : 'text-white/50 hover:text-white/70 hover:bg-white/5'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      <span>{config.label}</span>
+                    </span>
+                    {panel === 'sounds' && hasActiveSound && (
+                      <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
